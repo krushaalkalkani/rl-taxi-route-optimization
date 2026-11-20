@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+cache/
+.env
+.DS_Store
+# raw Google samples may be large; calibration table itself is committed
+data/gmaps_samples.json
+models/*_checkpoint*
+results/train_log.txt

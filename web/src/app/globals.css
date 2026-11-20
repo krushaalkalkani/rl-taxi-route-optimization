@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --pavement: #e7e6e1;
+  --pavement-2: #dcdbd5;
+  --paper: #f6f6f3;
+  --ink: #1c2228;
+  --ink-2: #5a6169;
+  --rule: #c9c7c0;
+  --medallion: #e8a900;
+  --signal: #2e5aa6;
+  --sign-green: #0b6b4b;
+  --brake: #c2362b;
+  color-scheme: light;
+}
+
+@theme inline {
+  --font-sans: var(--font-barlow);
+  --font-display: var(--font-barlow-condensed);
+}
+
+html {
+  background: var(--pavement);
+}
+
+body {
+  background: var(--pavement);
+  color: var(--ink);
+  font-family: var(--font-barlow), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  letter-spacing: 0.005em;
+}
+
+.prose-measure {
+  max-width: 66ch;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.leaflet-container.leaflet-container {
+  background: var(--paper);
+  font-family: var(--font-barlow), system-ui, sans-serif;
+}
+.leaflet-tooltip {
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

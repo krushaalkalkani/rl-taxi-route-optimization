@@ -1,0 +1,46 @@
+[project]
+name = "taxi-rl"
+version = "0.1.0"
+description = "Reinforcement-learning taxi dispatch on Midtown Manhattan's real street network, with Google Maps traffic calibration."
+readme = "README.md"
+authors = [
+    { name = "Krushal Kalkani", email = "krushal.kalkani78@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "gymnasium>=1.4.0",
+    "matplotlib>=3.11.2",
+    "networkx>=3.6.1",
+    "numpy>=2.4.6",
+    "osmnx>=2.1.2",
+    "pandas>=3.1.1",
+    "python-dotenv>=1.2.4",
+    "requests>=2.34.2",
+    "sb3-contrib>=2.9.2",
+    "scipy>=1.17.1",
+    "stable-baselines3>=2.9.2",
+    "torch>=2.15.0",
+    "tqdm>=4.70.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.8,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

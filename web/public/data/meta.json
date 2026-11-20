@@ -1,0 +1,1 @@
+{"airport": {"name": "LaGuardia (LGA)", "lat": 40.7769, "lon": -73.874, "exit": [40.7465, -73.973], "leg_km": 13.0, "leg_freeflow_s": 1080.0, "surcharge": 5.0, "return_fare_prob": 0.35, "queue_wait_s": [600.0, 1800.0]}, "graph": "OpenStreetMap \u2014 Midtown Manhattan"}
