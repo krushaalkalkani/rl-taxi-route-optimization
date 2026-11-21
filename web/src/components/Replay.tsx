@@ -51,7 +51,7 @@ function Panel({
         </div>
         <div className="text-right tabular-nums">
           <span className="font-display text-2xl font-semibold leading-none">${fares.toFixed(0)}</span>
-          <span className="ml-1 text-sm text-[var(--ink-2)]">fares, {served} rides</span>
+          <span className="ml-1 text-sm text-[var(--ink-2)]">fares, {served} {served === 1 ? "ride" : "rides"}</span>
         </div>
       </figcaption>
       <div className="relative h-[340px] overflow-hidden rounded-md border border-[var(--rule)] sm:h-[440px]">

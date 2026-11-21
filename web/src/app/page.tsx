@@ -7,7 +7,7 @@ import type { Evaluation, GmapsValidation, LearningCurve, Network, TaxiGrid } fr
 const REPO = "https://github.com/krushaalkalkani/rl-taxi-route-optimization";
 
 const POLICY_ROWS: { key: string; name: string; what: string }[] = [
-  { key: "ppo", name: "RL agent (MaskablePPO)", what: "Learned from 3M simulated decisions" },
+  { key: "ppo", name: "RL agent (MaskablePPO)", what: "Learned from 4M simulated decisions" },
   { key: "smart", name: "Hand-tuned rules", what: "Fare per minute, skips airport runs in traffic, chases surge" },
   { key: "nearest", name: "Nearest rider", what: "Always takes the closest rider who can be reached in time" },
   { key: "fare_rate", name: "Best fare rate", what: "Highest fare per minute of driving, airport included" },
@@ -29,15 +29,16 @@ export default function Home() {
   const ppo = s?.ppo?.profit_per_hour.mean;
   const nearest = s?.nearest?.profit_per_hour.mean;
   const smart = s?.smart?.profit_per_hour.mean;
+  const paired = evaluation?.paired_vs_nearest?.ppo;
   const googleCalibrated = network?.traffic_source === "google-routes-api";
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 pb-20 sm:px-8">
       <header className="flex items-center justify-between py-5">
-        <span className="font-display text-xl font-bold">Midtown Cab RL</span>
-        <nav className="flex gap-5 text-[15px]">
-          <a href="#results" className="hover:underline">Results</a>
-          <a href="#how" className="hover:underline">How it works</a>
+        <span className="whitespace-nowrap font-display text-xl font-bold">Midtown Cab RL</span>
+        <nav className="flex gap-5 whitespace-nowrap text-[15px]">
+          <a href="#results" className="hidden hover:underline sm:inline">Results</a>
+          <a href="#how" className="hidden hover:underline sm:inline">How it works</a>
           <a href={REPO} className="font-medium underline">Code on GitHub</a>
         </nav>
       </header>
@@ -55,17 +56,29 @@ export default function Home() {
         </section>
 
         <Replay />
+        <p className="prose-measure mt-4 text-[15px] text-[var(--ink-2)]">
+          Each replay is one four-hour shift on a seed fixed before training finished, not picked afterwards.
+          Single shifts are noisy: the agent loses some of them.
+          {paired ? ` Across ${evaluation?.episodes} test shifts it comes out ahead on ${Math.round(paired.win_rate * 100)}%.` : ""}
+        </p>
 
         <section id="results" className="mt-20 scroll-mt-6">
-          <h2 className="font-display text-4xl font-bold">Results over 240 shifts</h2>
+          <h2 className="font-display text-4xl font-bold">Results over {evaluation?.episodes ?? 0} shifts</h2>
           {s && ppo && nearest && smart ? (
             <>
               <p className="prose-measure mt-3 text-lg">
-                Across 240 four-hour shifts covering every hour of the day, the agent earns{" "}
-                <strong>${ppo.toFixed(2)}</strong> per hour after fuel. That&apos;s{" "}
-                <strong>{pct(ppo, nearest)}</strong> against the nearest-rider rule and{" "}
-                <strong>{pct(ppo, smart)}</strong> against rules I tuned by hand. Every policy faced the same
-                riders, traffic noise and start positions on each seed.
+                Across {evaluation.episodes} held-out four-hour shifts, spread evenly over every start hour,
+                the agent earns <strong>${ppo.toFixed(2)}</strong> per hour after fuel, compared with $
+                {nearest.toFixed(2)} for the nearest-rider rule ({pct(ppo, nearest)}) and ${smart.toFixed(2)} for
+                rules I tuned by hand ({pct(ppo, smart)}).
+                {paired && (
+                  <>
+                    {" "}Because every policy faces the same riders on each seed, the per-shift difference is
+                    measured directly: <strong>{paired.mean_diff >= 0 ? "+" : "−"}${Math.abs(paired.mean_diff).toFixed(2)}/h
+                    ± {paired.ci95.toFixed(2)}</strong> (95% CI), and the agent comes out ahead on{" "}
+                    {Math.round(paired.win_rate * 100)}% of shifts.
+                  </>
+                )}
               </p>
               <div className="mt-8 overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left tabular-nums">
@@ -117,9 +130,8 @@ export default function Home() {
                   <div>
                     <h3 className="font-display text-2xl font-semibold">Learning curve</h3>
                     <p className="mt-1 text-[var(--ink-2)]">
-                      Held-out profit per hour during training: {(curve.timesteps / 1e6).toFixed(0)}M
-                      decisions on {curve.n_envs} parallel simulators in {Math.round(curve.train_seconds / 60)}{" "}
-                      minutes on a laptop CPU.
+                      Profit per hour on 96 validation shifts during training: {(curve.timesteps / 1e6).toFixed(0)}M
+                      decisions on {curve.n_envs} parallel simulators, on a laptop CPU.
                     </p>
                     <div className="mt-4">
                       <LearningCurveChart data={curve} />
@@ -164,12 +176,16 @@ export default function Home() {
               Gymnasium&apos;s <code>check_env</code>.
             </Step>
             <Step n={5} title="Training the agent">
-              Stable-Baselines3 MaskablePPO with 256×256 policy and value networks, γ = 0.995, on 10 parallel
-              simulators. Shifts start at random hours, so a single policy covers the whole day.
+              Stable-Baselines3 MaskablePPO with a custom permutation-equivariant policy: one shared network
+              scores every candidate rider, another scores every zone, so a lesson learned about one rider
+              applies to all of them. Each action is charged its duration at a reference earning rate
+              (average-reward shaping for the semi-MDP). A plain MLP plateaued at +1% over greedy. The scoring
+              policy reached +6%.
             </Step>
             <Step n={6} title="Fair evaluation">
               Rider demand is drawn up front from its own random stream, so every policy faces identical
-              riders on each seed. 240 held-out shifts cover all 24 start hours equally, with 95%
+              riders on each seed. The model was chosen on validation seeds, then tested once on 480 unseen
+              shifts covering all 24 start hours equally, with 95%
               confidence intervals on every metric.
             </Step>
           </ol>

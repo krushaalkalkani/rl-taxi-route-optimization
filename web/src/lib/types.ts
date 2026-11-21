@@ -82,6 +82,7 @@ export interface Evaluation {
   episodes: number;
   summary: Record<string, Record<string, Metric>>;
   per_start_hour: Record<string, Record<string, number>>;
+  paired_vs_nearest?: Record<string, { mean_diff: number; ci95: number; pct: number; win_rate: number }>;
   traffic_source: string;
 }
 

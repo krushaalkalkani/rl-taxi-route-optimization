@@ -19,20 +19,28 @@ const RULE = "#c9c7c0";
 const tick = { fill: INK2, fontSize: 13 };
 
 export function LearningCurveChart({ data }: { data: LearningCurve }) {
-  const rows = data.curve.map((p) => ({ steps: p.timesteps / 1000, pph: p.profit_per_hour }));
+  // Skip the untrained starting point: it sits near $10/h and would flatten the interesting range.
+  const rows = data.curve
+    .filter((p) => p.timesteps >= 100_000)
+    .map((p) => ({ steps: p.timesteps / 1000, pph: p.profit_per_hour }));
+  // Round to whole millions; PPO's final rollout overshoots the target by a few thousand steps.
+  const maxK = Math.max(1000, Math.round(Math.max(...rows.map((r) => r.steps)) / 1000) * 1000);
+  const plotted = rows.map((r) => ({ ...r, steps: Math.min(r.steps, maxK) }));
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={rows} margin={{ top: 10, right: 16, bottom: 20, left: 0 }}>
+      <LineChart data={plotted} margin={{ top: 10, right: 16, bottom: 20, left: 0 }}>
         <CartesianGrid stroke={RULE} strokeDasharray="2 4" vertical={false} />
         <XAxis
           dataKey="steps"
           type="number"
-          domain={[0, "dataMax"]}
+          domain={[0, maxK]}
+          ticks={Array.from({ length: maxK / 1000 + 1 }, (_, i) => i * 1000)}
+          allowDataOverflow
           tick={tick}
-          tickFormatter={(v) => (v >= 1000 ? `${v / 1000}M` : `${v}k`)}
+          tickFormatter={(v) => (v === 0 ? "0" : `${v / 1000}M`)}
           label={{ value: "Training steps (decisions)", position: "insideBottom", offset: -12, fill: INK2, fontSize: 13 }}
         />
-        <YAxis tick={tick} tickFormatter={(v) => `$${v}`} width={52} domain={["auto", "auto"]} />
+        <YAxis tick={tick} tickFormatter={(v) => `$${v}`} width={52} domain={[66, 75]} ticks={[66, 68, 70, 72, 74]} />
         <Tooltip
           formatter={(v) => [`$${Number(v).toFixed(2)} / hour`, "RL agent"]}
           labelFormatter={(v) => `${Number(v).toLocaleString()}k steps`}
@@ -73,7 +81,7 @@ export function ByHourChart({ data }: { data: Evaluation }) {
           tickFormatter={(h) => `${String(h).padStart(2, "0")}:00`}
           label={{ value: "Shift start time", position: "insideBottom", offset: -12, fill: INK2, fontSize: 13 }}
         />
-        <YAxis tick={tick} tickFormatter={(v) => `$${v}`} width={52} />
+        <YAxis tick={tick} tickFormatter={(v) => `$${v}`} width={52} domain={[50, 95]} ticks={[50, 60, 70, 80, 90]} />
         <Tooltip formatter={(v, k) => [`$${Number(v).toFixed(2)} / hour`, POLICY_STYLE[String(k)]?.name ?? k]} labelFormatter={(h) => `Shift starting ${String(h).padStart(2, "0")}:00`} />
         <Legend formatter={(k) => POLICY_STYLE[k]?.name ?? k} wrapperStyle={{ fontSize: 14, paddingTop: 16 }} verticalAlign="top" align="left" />
         {policies.map((p) => (

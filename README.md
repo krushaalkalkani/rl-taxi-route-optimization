@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/krushaalkalkani/rl-taxi-route-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/krushaalkalkani/rl-taxi-route-optimization/actions/workflows/ci.yml)
 
-**Live demo:** <!-- DEMO_URL -->
+**Live demo:** https://midtown-cab-rl.vercel.app
 
 A reinforcement-learning agent that works a full taxi shift on **Midtown Manhattan's real street
 network**. It decides which rider to take, when to turn down a LaGuardia run, and where to wait,
@@ -12,7 +12,34 @@ The project goes from Gymnasium's toy `Taxi-v4` grid to a custom Gymnasium envir
 OpenStreetMap data, trains a `MaskablePPO` agent with Stable-Baselines3, and compares it with
 hand-written dispatch rules on identical, seeded shifts.
 
-<!-- RESULTS -->
+## Results
+
+480 held-out four-hour shifts (20 per start hour), on seeds never used for training or model
+selection. Every policy faces identical riders on each seed, so differences are paired.
+
+| Policy | Profit / hour | vs nearest rider (paired) | Shifts won vs nearest |
+|---|---|---|---|
+| **RL agent (MaskablePPO, scoring policy)** | **$72.35 ± 0.99** | **+$3.97 ± 0.66 (+5.8%)** | **70%** |
+| Hand-tuned rules | $69.41 ± 0.88 | +$1.03 ± 0.69 (+1.5%) | 55% |
+| Nearest rider (greedy) | $68.38 ± 0.84 | — | — |
+| Best fare rate | $66.34 ± 0.84 | −$2.04 ± 0.64 (−3.0%) | 40% |
+| Random | $16.95 ± 0.98 | −$51.43 | 0% |
+
+± = 95% confidence interval. Most of the gain is in the 15:00–23:00 window, when airport runs
+are a trap and surge zones appear.
+
+**What made the difference** (each step measured on the same validation seeds):
+
+| Change | Result vs greedy |
+|---|---|
+| Flat MLP policy, plain fare reward | −1% (collapsed to "always take the nearest rider") |
+| + average-reward shaping (charge each action its duration × $68/h) | +1% |
+| + **permutation-equivariant scoring policy** (shared network scores each rider and zone) | **+6–7%** |
+
+The scoring policy (`src/taxi_rl/policy.py`) is the key idea. A flat MLP has to relearn every lesson
+separately for each of the 5 rider slots. Sharing one scorer across slots means anything learned about
+one rider applies to all of them, and the policy is invariant to slot order, which a unit test checks.
+
 
 ## How it works
 
@@ -35,9 +62,9 @@ OpenStreetMap ──► road graph (OSMnx) ──► hourly traffic model ◄─
 | Google Maps | `computeRouteMatrix` (TRAFFIC_AWARE) samples per zone and hour → fits congestion + OSM speed correction; `validate` reports simulator-vs-Google ETA error | `src/taxi_rl/gmaps.py` |
 | Demand | Non-homogeneous Poisson riders around real hotspots with daily profiles, surge events (higher demand and fares, 20-min half-life), LaGuardia riders with traffic-dependent out-and-back legs | `src/taxi_rl/demand.py` |
 | Environment | `CityTaxi-v0`: actions = serve one of the 5 closest reachable riders, reposition to one of 8 zones, or wait; 87-dim observation; action masks; reward = fare − driving cost | `src/taxi_rl/envs/city_taxi.py` |
-| Agent | `sb3_contrib.MaskablePPO`, 256×256 actor/critic, γ = 0.995, reward normalisation, 10 parallel envs | `src/taxi_rl/train.py` |
+| Agent | `sb3_contrib.MaskablePPO` with a custom permutation-equivariant scoring policy, average-reward shaping, γ = 0.99, reward normalisation | `src/taxi_rl/policy.py`, `train.py` |
 | Baselines | random, nearest rider, best fare-rate, hand-tuned rules (surge chasing, rush-hour airport rule) | `src/taxi_rl/baselines.py` |
-| Evaluation | Common random numbers: each shift's riders come from their own RNG stream, so all policies face the same riders. 240 shifts × all start hours, 95% CIs | `src/taxi_rl/evaluate.py` |
+| Evaluation | Common random numbers: each shift's riders come from their own RNG stream, so all policies face the same riders. Model chosen on 96 validation shifts, tested once on 480 unseen shifts; paired 95% CIs | `src/taxi_rl/evaluate.py` |
 | Warm-up | Tabular Q-learning on Gymnasium `Taxi-v4` | `src/taxi_rl/taxi_grid.py` |
 | Website | Next.js + Leaflet replay of both cabs side by side, charts with Recharts | `web/` |
 
@@ -59,8 +86,8 @@ cd rl-taxi-route-optimization
 uv sync                       # Python 3.11+, installs Gymnasium, SB3, OSMnx, PyTorch
 make test                     # offline tests on a synthetic grid
 make grid                     # Stage 1: Q-learning on Taxi-v4 (seconds)
-make train                    # Stage 2: MaskablePPO, ~30 min on a laptop CPU
-make evaluate                 # 240 seeded shifts, all policies → results/evaluation.json
+make train                    # Stage 2: MaskablePPO, 4M steps on a laptop CPU
+make evaluate                 # 480 seeded test shifts, all policies → results/evaluation.json
 make export                   # JSON for the website
 cd web && npm install && npm run dev
 ```
@@ -93,7 +120,7 @@ automatically. Without it, the simulator uses a built-in rush-hour profile.
 - Rider demand is synthetic, shaped around real hotspots, not replayed from NYC TLC trip records.
 - A single cab. Competition shows up only as riders who give up waiting.
 - Traffic varies by zone and hour, not by street or incident.
-- The margin over a well-tuned heuristic is modest. That's an honest result, not a bug.
+- The margin is real but moderate (+4% over hand-tuned rules). The policy still loses about 30% of individual shifts to greedy.
 
 ## Ideas for extension
 

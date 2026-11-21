@@ -61,11 +61,11 @@ def summarise(rows: list[dict]) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="models/ppo_city_taxi.zip")
-    ap.add_argument("--episodes", type=int, default=240)
+    ap.add_argument("--episodes", type=int, default=480)
     ap.add_argument("--out", default=str(RESULTS_DIR / "evaluation.json"))
     args = ap.parse_args()
 
-    # 10 shifts per start hour → every hour of the day is covered evenly.
+    # 20 shifts per start hour → every hour of the day is covered evenly.
     seeds = [50_000 + i for i in range(args.episodes)]
     hours = [i % 24 for i in range(args.episodes)]
     policies: dict[str, Callable] = {k: v for k, v in POLICIES.items()}
@@ -75,8 +75,10 @@ def main() -> None:
     env = CityTaxiEnv()
     results = {}
     per_hour = {}
+    raw: dict[str, np.ndarray] = {}
     for name, pol in policies.items():
         rows = run_policy(pol, seeds, hours, env)
+        raw[name] = np.array([r["profit_per_hour"] for r in rows])
         results[name] = summarise(rows)
         ph = {}
         for r in rows:
@@ -85,10 +87,23 @@ def main() -> None:
         print(f"{name:10s} profit/h = {results[name]['profit_per_hour']['mean']:7.2f} "
               f"± {results[name]['profit_per_hour']['ci95']:.2f}  util={results[name]['utilization']['mean']:.3f}")
 
+    # Paired comparison: same seed ⇒ same riders, so per-shift differences cancel most noise.
+    paired = {}
+    for a in [k for k in raw if k != "nearest"]:
+        d = raw[a] - raw["nearest"]
+        paired[a] = {
+            "mean_diff": round(float(d.mean()), 3),
+            "ci95": round(float(1.96 * d.std(ddof=1) / np.sqrt(len(d))), 3),
+            "pct": round(float(100 * d.mean() / raw["nearest"].mean()), 2),
+            "win_rate": round(float((d > 0).mean()), 3),
+        }
+        print(f"  {a:10s} vs nearest: {paired[a]['mean_diff']:+.2f} ± {paired[a]['ci95']:.2f} $/h "
+              f"({paired[a]['pct']:+.1f}%), better on {paired[a]['win_rate']:.0%} of shifts")
+
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(
         json.dumps({"episodes": args.episodes, "summary": results, "per_start_hour": per_hour,
-                    "traffic_source": env.w.traffic.source}, indent=2)
+                    "paired_vs_nearest": paired, "traffic_source": env.w.traffic.source}, indent=2)
     )
     print("wrote", args.out)
 

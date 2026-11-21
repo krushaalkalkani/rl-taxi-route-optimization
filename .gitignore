@@ -10,3 +10,6 @@ cache/
 data/gmaps_samples.json
 models/*_checkpoint*
 results/train_log.txt
+models/*
+!models/ppo_city_taxi.zip
+results/*smoke*

@@ -12,14 +12,14 @@ lint:
 grid:            ## Stage 1: tabular Q-learning on Gymnasium Taxi-v4
 	uv run python -m taxi_rl.taxi_grid
 
-train:           ## Stage 2: MaskablePPO on CityTaxi-v0 (≈30-40 min on a laptop CPU)
-	uv run python -m taxi_rl.train --timesteps 3000000 --n-envs 10 --eval-every 150000
+train:           ## Stage 2: MaskablePPO + scoring policy on CityTaxi-v0
+	uv run python -m taxi_rl.train --timesteps 4000000 --n-envs 5 --eval-every 200000 --gamma 0.99 --name ppo_city_taxi
 
-evaluate:        ## 240 held-out shifts, all policies
-	uv run python -m taxi_rl.evaluate --episodes 240
+evaluate:        ## 480 held-out shifts, all policies
+	uv run python -m taxi_rl.evaluate --episodes 480
 
 export:          ## JSON for the website
-	uv run python -m taxi_rl.export --out web/public/data
+	uv run python -m taxi_rl.export --out web/public/data --shift-hours 4
 
 calibrate:       ## Fit traffic to Google Maps (needs GOOGLE_MAPS_API_KEY)
 	uv run python -m taxi_rl.gmaps calibrate

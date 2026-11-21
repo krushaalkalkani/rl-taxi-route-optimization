@@ -1,0 +1,102 @@
+{
+  "curve": [
+    {
+      "timesteps": 5,
+      "profit_per_hour": 10.18
+    },
+    {
+      "timesteps": 200000,
+      "profit_per_hour": 71.2
+    },
+    {
+      "timesteps": 400000,
+      "profit_per_hour": 71.42
+    },
+    {
+      "timesteps": 600000,
+      "profit_per_hour": 71.57
+    },
+    {
+      "timesteps": 800000,
+      "profit_per_hour": 72.11
+    },
+    {
+      "timesteps": 1000000,
+      "profit_per_hour": 72.1
+    },
+    {
+      "timesteps": 1200000,
+      "profit_per_hour": 71.67
+    },
+    {
+      "timesteps": 1400000,
+      "profit_per_hour": 71.74
+    },
+    {
+      "timesteps": 1600000,
+      "profit_per_hour": 72.38
+    },
+    {
+      "timesteps": 1800000,
+      "profit_per_hour": 72.63
+    },
+    {
+      "timesteps": 2000000,
+      "profit_per_hour": 72.7
+    },
+    {
+      "timesteps": 2200000,
+      "profit_per_hour": 72.21
+    },
+    {
+      "timesteps": 2400000,
+      "profit_per_hour": 72.66
+    },
+    {
+      "timesteps": 2600000,
+      "profit_per_hour": 72.49
+    },
+    {
+      "timesteps": 2800000,
+      "profit_per_hour": 72.42
+    },
+    {
+      "timesteps": 3000000,
+      "profit_per_hour": 72.75
+    },
+    {
+      "timesteps": 3200000,
+      "profit_per_hour": 72.34
+    },
+    {
+      "timesteps": 3400000,
+      "profit_per_hour": 72.9
+    },
+    {
+      "timesteps": 3600000,
+      "profit_per_hour": 72.77
+    },
+    {
+      "timesteps": 3800000,
+      "profit_per_hour": 72.95
+    },
+    {
+      "timesteps": 4000000,
+      "profit_per_hour": 73.22
+    },
+    {
+      "timesteps": 4003840,
+      "profit_per_hour": 73.19
+    }
+  ],
+  "nearest_baseline": 68.25,
+  "best": 73.22,
+  "timesteps": 4000000,
+  "n_envs": 5,
+  "train_seconds": 26731,
+  "opp_cost": 68.0,
+  "gamma": 0.99,
+  "arch": "scoring",
+  "lr": 0.0003,
+  "ent_coef": 0.01
+}

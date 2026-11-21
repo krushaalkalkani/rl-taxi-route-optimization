@@ -127,8 +127,14 @@ class CityTaxiEnv(gym.Env):
         use_calibration: bool = True,
         record: bool = False,
         render_mode: str | None = None,
+        opportunity_cost_per_hour: float = 0.0,
     ):
         super().__init__()
+        # Average-reward shaping for the semi-MDP: every action is charged its duration times
+        # a reference earning rate, so a trip only scores positive if it beats the going rate.
+        # The shaped return is profit − λ·(shift time), which has the same optimum but far lower
+        # variance. Evaluation always reports raw profit (``episode_stats``).
+        self.opp_cost = opportunity_cost_per_hour
         self.w = build_world(graph_source, n_zones, use_calibration)
         self.n_slots = n_slots
         self.n_zones = self.w.zones.n
@@ -363,6 +369,7 @@ class CityTaxiEnv(gym.Env):
             action = self.action_space.n - 1  # invalid → wait (never hit with masking)
         reward_usd = 0.0
         cost_before = self.stats.cost
+        t_before = self.t
         info: dict = {}
 
         if action < self.n_slots:
@@ -409,6 +416,7 @@ class CityTaxiEnv(gym.Env):
             info["event"] = "wait"
 
         reward_usd -= self.stats.cost - cost_before
+        reward_usd -= self.opp_cost * (self.t - t_before) / 3600.0
         terminated = self.t >= self.shift_s
         if not terminated:
             self._compute_candidates()
